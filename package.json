@@ -1,11 +1,11 @@
 {
-  "name": "stack-wizard",
+  "name": "pick-a-stack",
   "version": "1.0.0",
   "description": "A CLI to scaffold UI stacks quickly",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "stack-wizard": "dist/index.js"
+    "pick-a-stack": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
