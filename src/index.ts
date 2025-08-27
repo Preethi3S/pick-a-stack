@@ -1,66 +1,189 @@
 #!/usr/bin/env node
 import inquirer from "inquirer";
-import { execSync } from "node:child_process";
+import { execSync } from "child_process";
 import chalk from "chalk";
+import os from "os";
+import fs from "fs";
+import path from "path";
 
-type Category = "Styling" | "State Management" | "Testing" | "UI Components";
 
-const options: Record<Category, Record<string, string>> = {
-  "Styling": {
-    TailwindCSS: "npm i -D tailwindcss postcss autoprefixer && npx tailwindcss init -p",
-    "Styled Components": "npm i styled-components",
-    Emotion: "npm i @emotion/react @emotion/styled",
-  },
-  "State Management": {
-    Redux: "npm i @reduxjs/toolkit react-redux",
-    Zustand: "npm i zustand",
-    Recoil: "npm i recoil",
-    Jotai: "npm i jotai",
-  },
-  "Testing": {
-    Jest: "npm i -D jest @types/jest ts-jest",
-    Vitest: "npm i -D vitest",
-    Cypress: "npm i -D cypress",
-  },
-  "UI Components": {
-    "Material UI": "npm i @mui/material @emotion/react @emotion/styled",
-    Shadcn: "npx shadcn-ui init",
-    Radix: "npm i @radix-ui/react-accordion @radix-ui/react-dialog",
-    Mantine: "npm i @mantine/core @mantine/hooks",
-  },
-};
-
-async function runWizard() {
-  console.log(chalk.cyan("\n🚀 Welcome to Stack Wizard!\n"));
-
-  const { category } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "category",
-      message: "Choose a category:",
-      choices: Object.keys(options),
-    },
-  ]);
-
-  const { pkgs } = await inquirer.prompt([
-    {
-      type: "checkbox",
-      name: "pkgs",
-      message: `Choose ${category} packages (space to select):`,
-      choices: Object.keys(options[category as Category]),
-    },
-  ]);
-
-  for (const pkg of pkgs) {
-    const command = options[category as Category][pkg];
-    console.log(chalk.green(`\n📦 Installing ${pkg}...\n`));
-    try {
-      execSync(command, { stdio: "inherit" });
-      console.log(chalk.green(`✅ ${pkg} installed successfully!\n`));
-    } catch {
-      console.error(chalk.red(`❌ Failed to install ${pkg}\n`));
+async function safePrompt(prompt: any) {
+  try {
+    return await inquirer.prompt(prompt);
+  } catch (err: any) {
+    if (err.name === "ExitPromptError") {
+      console.log(chalk.yellow("\n⛔ Prompt canceled. You can run the CLI again anytime!"));
+      process.exit(0);
+    } else {
+      throw err;
     }
   }
 }
 
-runWizard();
+const stylingOptions: Record<string, string> = {
+  TailwindCSS: "tailwindcss postcss autoprefixer",
+  Bootstrap: "bootstrap",
+  "Styled Components": "styled-components",
+  Emotion: "@emotion/react @emotion/styled",
+  Sass: "sass",
+  Less: "less",
+  "Material UI": "@mui/material @emotion/react @emotion/styled",
+  "Chakra UI": "@chakra-ui/react @emotion/react @emotion/styled",
+};
+
+const stateOptions: Record<string, string> = {
+  Redux: "@reduxjs/toolkit react-redux",
+  Zustand: "zustand",
+  Jotai: "jotai",
+  Recoil: "recoil",
+  MobX: "mobx mobx-react-lite",
+};
+
+const routingOptions: Record<string, string> = {
+  "React Router": "react-router-dom",
+  "Vue Router": "vue-router",
+  "Svelte Navigator": "svelte-navigator",
+};
+
+const utilityOptions: Record<string, string> = {
+  Lodash: "lodash",
+  Dayjs: "dayjs",
+  Axios: "axios",
+  "React Query": "@tanstack/react-query",
+};
+
+const testingOptions: Record<string, string> = {
+  Jest: "jest @types/jest ts-jest",
+  Vitest: "vitest",
+  Cypress: "cypress",
+  "React Testing Library": "@testing-library/react @testing-library/jest-dom",
+};
+
+const lintingOptions: Record<string, string> = {
+  ESLint: "eslint",
+  Prettier: "prettier eslint-config-prettier eslint-plugin-prettier",
+  StandardJS: "standard",
+};
+
+const componentOptions: Record<string, string> = {
+  "Material UI": "@mui/material @emotion/react @emotion/styled",
+  Mantine: "@mantine/core @mantine/hooks",
+  "Shadcn UI": "",
+  "Ant Design": "antd",
+  "Radix UI": "@radix-ui/react-accordion @radix-ui/react-dialog",
+};
+
+const envOptions: Record<string, string> = {
+  Dotenv: "dotenv",
+  EnvSetup: "",
+  "Theme / Dark Mode": "",
+};
+
+const shellCommands: Record<string, string> = {
+  "Components Folder": "src/components",
+  "Pages Folder": "src/pages",
+  "Hooks Folder": "src/hooks",
+  "Utils Folder": "src/utils",
+  "Boilerplate Files": "src/App.tsx src/main.tsx src/index.html",
+  "README / LICENSE": "README.md LICENSE",
+  "GitHub Actions": ".github/workflows/node.yml",
+};
+
+const devToolsOptions: Record<string, string> = {
+  "React Icons": "react-icons",
+  "Form Handling": "react-hook-form formik",
+  "State DevTools": "redux-devtools-extension",
+};
+
+async function runCLI() {
+  console.log(chalk.cyan("\n🚀 Welcome to Vite Stack Wizard!\n"));
+
+  const { projectName } = await safePrompt([
+    { type: "input", name: "projectName", message: "Project name:", default: "my-vite-app" },
+  ]);
+
+  const { framework } = await safePrompt([
+    { type: "list", name: "framework", message: "Choose a framework:", choices: ["react", "vue", "svelte", "vanilla"] },
+  ]);
+
+  const { language } = await safePrompt([
+    { type: "list", name: "language", message: "Choose a language:", choices: ["JavaScript", "TypeScript"] },
+  ]);
+
+  console.log(chalk.green(`\n📦 Creating Vite app: ${projectName}\n`));
+  execSync(`npm create vite@latest ${projectName} -- --template ${framework}${language === "TypeScript" ? "-ts" : ""}`, { stdio: "inherit" });
+
+  process.chdir(projectName);
+  console.log(chalk.cyan(`\n📂 Switched to project folder: ${projectName}\n`));
+
+  const allOptionGroups: { [key: string]: Record<string, string> } = {
+    Styling: stylingOptions,
+    State: stateOptions,
+    Routing: routingOptions,
+    Utilities: utilityOptions,
+    Testing: testingOptions,
+    Linting: lintingOptions,
+    Components: componentOptions,
+    Env: envOptions,
+    DevTools: devToolsOptions,
+  };
+
+  const packagesToInstall: string[] = [];
+
+
+  for (const [category, options] of Object.entries(allOptionGroups)) {
+    const { selection } = await safePrompt([
+      { type: "checkbox", name: "selection", message: `Choose ${category} options:`, choices: Object.keys(options) },
+    ]);
+    (selection as string[]).forEach((pkg: string) => {
+      const cmd = options[pkg];
+      if (cmd && cmd.trim() !== "") packagesToInstall.push(cmd);
+    });
+  }
+
+  if (packagesToInstall.length > 0) {
+    console.log(chalk.green(`\n📦 Installing npm packages...\n`));
+    execSync(`npm install ${packagesToInstall.join(' ')}`, { stdio: 'inherit', shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh' });
+  }
+
+  for (const [name, fileOrDirPath] of Object.entries(shellCommands)) {
+    if (!fileOrDirPath) continue;
+    const paths = fileOrDirPath.split(' ');
+
+    paths.forEach(p => {
+      const fullPath = path.resolve(process.cwd(), p);
+      const dir = path.dirname(fullPath);
+
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      if (p.includes('.') && !fs.existsSync(fullPath)) {
+        fs.writeFileSync(fullPath, '');
+      }
+    });
+  }
+
+  const { extras } = await safePrompt([
+    { type: "checkbox", name: "extras", message: "Extra actions:", choices: ["Git Initialization", "Start Dev Server"] },
+  ]);
+
+  if (extras.includes("Git Initialization")) {
+    console.log(chalk.green(`\n🐙 Initializing Git repository...\n`));
+    execSync("git init", { stdio: "inherit", shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh' });
+  }
+
+  if (extras.includes("Start Dev Server")) {
+    console.log(chalk.green(`\n🚀 Starting development server...\n`));
+    execSync("npm run dev", { stdio: 'inherit', shell: os.platform() === 'win32' ? 'cmd.exe' : '/bin/sh' });
+  }
+
+  console.log(chalk.magenta(`\n✨ Project setup complete!`));
+}
+
+process.on('SIGINT', () => {
+  console.log(chalk.yellow('\n⛔ CLI interrupted. You can run it again anytime!'));
+  process.exit(0);
+});
+
+runCLI();
